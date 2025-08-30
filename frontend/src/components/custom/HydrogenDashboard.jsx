@@ -219,6 +219,7 @@ const HydrogenDashboard = () => {
     const [filterType, setFilterType] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [showOptimization, setShowOptimization] = useState(false);
+    const [hydrogenPlantsResponse, setHydrogenPlants] = useState([]);
 
     // Mock Leaflet functionality for demo
     useEffect(() => {
@@ -227,7 +228,14 @@ const HydrogenDashboard = () => {
         axiosInstance
             .get("plants/")
             .then((response) => {
-                console.log(response);
+                console.log(response.data);
+                setHydrogenPlants(
+                    response.data.filter(
+                        (plant) =>
+                            plant.latitude !== undefined &&
+                            plant.longitude !== undefined
+                    )
+                );
             })
             .catch((err) => {
                 console.log(err);
@@ -236,11 +244,11 @@ const HydrogenDashboard = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case "operational":
+            case "Operational":
                 return "bg-green-500";
-            case "construction":
+            case "Construction":
                 return "bg-yellow-500";
-            case "planned":
+            case "Announced":
                 return "bg-blue-500";
             default:
                 return "bg-gray-500";
@@ -266,23 +274,29 @@ const HydrogenDashboard = () => {
         }
     };
 
-    const filteredPlants = mockData.hydrogenPlants.filter(
+    const filteredPlants = hydrogenPlantsResponse.filter(
         (plant) =>
             (filterType === "all" || plant.status === filterType) &&
             plant.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalCapacity = mockData.hydrogenPlants.reduce(
-        (sum, plant) => sum + plant.capacity,
+    const totalCapacity = hydrogenPlantsResponse.reduce(
+        (sum, plant) => sum + Number(plant.capacity || 0),
         0
     );
-    const operationalPlants = mockData.hydrogenPlants.filter(
-        (p) => p.status === "operational"
+
+    const operationalPlants = hydrogenPlantsResponse.filter(
+        (p) => p.status === "Operation"
     ).length;
     const totalDemand = mockData.demandCenters.reduce(
         (sum, center) => sum + center.demand,
         0
     );
+
+    useEffect(() => {
+        console.log("Filtered : ", filteredPlants);
+        console.log("All Plants : ", hydrogenPlantsResponse);
+    }, [filteredPlants, hydrogenPlantsResponse]);
 
     return (
         <div className="p-6 space-y-6">
@@ -316,7 +330,7 @@ const HydrogenDashboard = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {totalCapacity} MW
+                            {totalCapacity.toFixed(2)} MW
                         </div>
                         <p className="text-xs text-muted-foreground">
                             +12% from last month
@@ -335,7 +349,7 @@ const HydrogenDashboard = () => {
                             {operationalPlants}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Out of {mockData.hydrogenPlants.length} total
+                            Out of {hydrogenPlantsResponse.length} total
                         </p>
                     </CardContent>
                 </Card>
@@ -416,10 +430,10 @@ const HydrogenDashboard = () => {
                             />
 
                             {/* Hydrogen Plants */}
-                            {mockData.hydrogenPlants.map((plant) => (
+                            {filteredPlants.map((plant) => (
                                 <Marker
                                     key={plant.id}
-                                    position={[plant.lat, plant.lng]}
+                                    position={[plant.latitude, plant.longitude]}
                                 >
                                     <Popup>
                                         <div className="p-2">
@@ -528,14 +542,14 @@ const HydrogenDashboard = () => {
                                     <SelectItem value="all">
                                         All Status
                                     </SelectItem>
-                                    <SelectItem value="operational">
+                                    <SelectItem value="Operation">
                                         Operational
                                     </SelectItem>
-                                    <SelectItem value="construction">
+                                    <SelectItem value="Construction">
                                         Under Construction
                                     </SelectItem>
-                                    <SelectItem value="planned">
-                                        Planned
+                                    <SelectItem value="Announced">
+                                        Announced
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
@@ -668,7 +682,7 @@ const HydrogenDashboard = () => {
                     <Tabs defaultValue="plants" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="plants">
-                                H2 Plants ({mockData.hydrogenPlants.length})
+                                H2 Plants ({filteredPlants.length})
                             </TabsTrigger>
                             <TabsTrigger value="demand">
                                 Demand Centers ({mockData.demandCenters.length})
@@ -689,7 +703,9 @@ const HydrogenDashboard = () => {
                                         <CardHeader className="pb-3">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex items-center space-x-2">
-                                                    {getTypeIcon(plant.type)}
+                                                    {getTypeIcon(
+                                                        plant.location
+                                                    )}
                                                     <CardTitle className="text-sm">
                                                         {plant.name}
                                                     </CardTitle>
@@ -718,8 +734,8 @@ const HydrogenDashboard = () => {
                                                         Location:
                                                     </span>
                                                     <span className="font-medium">
-                                                        {plant.lat.toFixed(2)},{" "}
-                                                        {plant.lng.toFixed(2)}
+                                                        {plant.latitude},{" "}
+                                                        {plant.longitude}
                                                     </span>
                                                 </div>
                                             </div>
