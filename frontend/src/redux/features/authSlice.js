@@ -5,7 +5,7 @@ const loginUser = createAsyncThunk(
     "auth/loginUser",
     async (userData, { rejectWithValue }) => {
         try {
-            const response = await axiosInstance.post("user/login/", userData, {
+            const response = await axiosInstance.post("auth/login/", userData, {
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -39,7 +39,7 @@ const registerUser = createAsyncThunk(
     async (userData, { rejectWithValue }) => {
         try {
             const response = await axiosInstance.post(
-                "user/register/",
+                "auth/register/",
                 userData,
                 {
                     headers: {
@@ -48,9 +48,7 @@ const registerUser = createAsyncThunk(
                 }
             );
             if (response.status === 201) {
-                const { user, token } = response.data;
-                localStorage.setItem("token", token);
-                return { user, token };
+                return response.data;
             }
 
             return rejectWithValue(
@@ -76,7 +74,7 @@ const fetchUserProfile = createAsyncThunk(
     async (_, { getState, rejectWithValue }) => {
         const token = getState().auth.token;
         try {
-            const response = await axiosInstance.get("user/profile/", {
+            const response = await axiosInstance.get("auth/profile/", {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -142,9 +140,7 @@ export const authSlice = createSlice({
             })
             .addCase(registerUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.isAuthenticated = true;
-                state.user = action.payload.user;
-                state.token = action.payload.token;
+                state.isAuthenticated = false;
             })
             .addCase(registerUser.rejected, (state, action) => {
                 state.loading = false;

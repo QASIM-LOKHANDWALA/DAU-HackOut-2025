@@ -23,10 +23,12 @@ import {
     TileLayer,
     Marker,
     Popup,
+    CircleMarker,
     LayersControl,
 } from "react-leaflet";
 import L from "leaflet";
 import axiosInstance from "../../utils/axiosInstance";
+import Papa from "papaparse";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -220,11 +222,20 @@ const HydrogenDashboard = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [showOptimization, setShowOptimization] = useState(false);
     const [hydrogenPlantsResponse, setHydrogenPlants] = useState([]);
+    const [optimizedSites, setOptimizedSites] = useState([]);
 
     // Mock Leaflet functionality for demo
     useEffect(() => {
         // In a real implementation, you would initialize Leaflet here
         console.log("Map would be initialized here with Leaflet");
+        Papa.parse("/Predictions.csv", {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: (result) => {
+                setOptimizedSites(result.data);
+            },
+        });
         axiosInstance
             .get("plants/")
             .then((response) => {
@@ -478,6 +489,40 @@ const HydrogenDashboard = () => {
                                     </Popup>
                                 </Marker>
                             ))}
+
+                            {/* AI Recommended Sites */}
+                            {showOptimization &&
+                                optimizedSites.map((site) => (
+                                    <CircleMarker
+                                        key={site.id}
+                                        center={[site.Latitude, site.Longitude]}
+                                        radius={(site.final_score * 50) / 5}
+                                        pathOptions={{
+                                            color: "purple",
+                                            weight: 2,
+                                            fillColor: `rgba(128,0,128,${
+                                                site.final_score / 100
+                                            })`,
+                                            fillOpacity: 0.6,
+                                        }}
+                                    >
+                                        {/* <Popup>
+                                            <div className="p-2">
+                                                <h3 className="font-medium">
+                                                    {site.city}
+                                                </h3>
+                                                <p className="text-sm">
+                                                    Score: {site.final_score}
+                                                    /100
+                                                </p>
+                                                <p className="text-sm">
+                                                    Cost Score:{" "}
+                                                    {site["cost_score"]}
+                                                </p>
+                                            </div>
+                                        </Popup> */}
+                                    </CircleMarker>
+                                ))}
                         </MapContainer>
 
                         {/* Map Controls */}
