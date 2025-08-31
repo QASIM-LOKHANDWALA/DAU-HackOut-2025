@@ -12,6 +12,8 @@ const loginUser = createAsyncThunk(
             });
             if (response.status === 200) {
                 const { token, user } = response.data;
+                console.log(response.data);
+
                 localStorage.setItem("token", token);
                 return { user, token };
             }
@@ -24,9 +26,7 @@ const loginUser = createAsyncThunk(
         } catch (error) {
             if (error.response && error.response.data) {
                 return rejectWithValue(
-                    error.response.data.error ||
-                        error.response.data.message ||
-                        "Server error"
+                    response.data.msg || response.data.message || "Server error"
                 );
             }
             return rejectWithValue(error.message || "Network error");
@@ -48,12 +48,13 @@ const registerUser = createAsyncThunk(
                 }
             );
             if (response.status === 201) {
+                console.log(response.data);
                 return response.data;
             }
 
             return rejectWithValue(
-                error.response.data.error ||
-                    error.response.data.message ||
+                response.data.msg ||
+                    response.data.error ||
                     "Registration failed"
             );
         } catch (error) {

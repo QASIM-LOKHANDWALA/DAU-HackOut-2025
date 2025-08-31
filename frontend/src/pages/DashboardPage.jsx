@@ -49,14 +49,7 @@ const DashboardPage = () => {
             <main className="flex-1 w-full">
                 <Navbar />
                 <div className="flex-1">
-                    <Routes>
-                        <Route path="/" element={<HydrogenDashboard />} />
-                        <Route path="/inbox" element={<Inbox />} />
-                        <Route path="/calendar" element={<Calendar />} />
-                        <Route path="/search" element={<Search />} />
-                        <Route path="/settings" element={<Settings />} />
-                        <Route path="/profile" element={<Profile />} />
-                    </Routes>
+                    <HydrogenDashboard />
                 </div>
             </main>
         </div>

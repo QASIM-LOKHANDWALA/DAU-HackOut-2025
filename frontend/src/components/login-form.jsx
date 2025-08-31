@@ -27,7 +27,7 @@ export function LoginForm({ className, ...props }) {
                 await register(formData);
                 toast.success("Registered successfully");
             }
-            navigate("/dashboard");
+            navigate("/");
         } catch (err) {
             toast.error(err);
         } finally {

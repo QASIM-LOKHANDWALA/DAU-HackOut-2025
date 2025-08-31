@@ -8,9 +8,8 @@ const App = () => {
     return (
         <div className="min-h-screen w-full">
             <Routes>
-                <Route path="/" element={<h1>Home</h1>} />
                 <Route path="/auth" element={<LoginPage />} />
-                <Route path="/dashboard/*" element={<DashboardPage />} />
+                <Route path="/" element={<DashboardPage />} />
             </Routes>
             <Toaster />
         </div>

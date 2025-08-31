@@ -11,6 +11,7 @@ const router = express.Router();
 router.post("/register", async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        console.log("Registering user:", email);
 
         const existingUser = await User.findOne({ email });
         if (existingUser)
@@ -23,6 +24,8 @@ router.post("/register", async (req, res) => {
 
         res.status(201).json({ msg: "User registered successfully" });
     } catch (err) {
+        console.log(err);
+
         res.status(500).json({ msg: err.message });
     }
 });
@@ -30,6 +33,7 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log("Logging in user:", email);
 
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ msg: "Invalid credentials" });
@@ -44,6 +48,7 @@ router.post("/login", async (req, res) => {
 
         res.status(200).json({ token, user });
     } catch (err) {
+        console.log(err);
         res.status(500).json({ msg: err.message });
     }
 });
