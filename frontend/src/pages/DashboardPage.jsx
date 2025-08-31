@@ -45,7 +45,7 @@ const Profile = () => (
 const DashboardPage = () => {
     return (
         <div className="flex min-h-screen w-full">
-            <AppSidebar />
+            {/* <AppSidebar /> */}
             <main className="flex-1 w-full">
                 <Navbar />
                 <div className="flex-1">

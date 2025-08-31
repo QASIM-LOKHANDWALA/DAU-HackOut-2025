@@ -31,7 +31,7 @@ const Navbar = () => {
     };
     return (
         <nav className="p-4 flex items-center justify-between w-full">
-            <SidebarTrigger />
+            {/* <SidebarTrigger /> */}
 
             <div className="flex items-center gap-4">
                 <Link to="/dashboard" />

@@ -240,6 +240,7 @@ const HydrogenDashboard = () => {
             skipEmptyLines: true,
             complete: (result) => {
                 setOptimizedSites(result.data);
+                console.log("Optimized sites loaded:", result.data);
             },
         });
         axiosInstance
@@ -321,6 +322,30 @@ const HydrogenDashboard = () => {
             default:
                 return <MapPin className="w-4 h-4" />;
         }
+    };
+    const getMarkerIcon = (status) => {
+        let color;
+        switch (status) {
+            case "Operation":
+            case "Operational":
+                color = "#3b82f6"; // blue
+                break;
+            case "Construction":
+                color = "#eab308"; // yellow
+                break;
+            case "Announced":
+            case "Planned":
+                color = "#22c55e"; // green
+                break;
+            default:
+                color = "#6b7280"; // gray
+        }
+
+        return L.divIcon({
+            className: "custom-plant-marker",
+            html: `<div class="w-4 h-4 rounded-full border-2 border-white shadow-lg" style="background-color: ${color}"></div>`,
+            iconSize: [16, 16],
+        });
     };
 
     const filteredPlants = hydrogenPlantsResponse.filter(
@@ -461,30 +486,6 @@ const HydrogenDashboard = () => {
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle>Infrastructure Map</CardTitle>
-                            <div className="flex space-x-2">
-                                <Select
-                                    value={activeLayer}
-                                    onValueChange={setActiveLayer}
-                                >
-                                    <SelectTrigger className="w-40">
-                                        <SelectValue placeholder="Select layer" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">
-                                            All Infrastructure
-                                        </SelectItem>
-                                        <SelectItem value="production">
-                                            H2 Plants
-                                        </SelectItem>
-                                        <SelectItem value="demand">
-                                            Demand Centers
-                                        </SelectItem>
-                                        <SelectItem value="renewable">
-                                            Renewable Sources
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -514,6 +515,7 @@ const HydrogenDashboard = () => {
                                 <Marker
                                     key={plant.id}
                                     position={[plant.latitude, plant.longitude]}
+                                    icon={getMarkerIcon(plant.status)}
                                 >
                                     <Popup>
                                         <div className="p-2">
@@ -565,31 +567,109 @@ const HydrogenDashboard = () => {
                                     <CircleMarker
                                         key={site.id}
                                         center={[site.Latitude, site.Longitude]}
-                                        radius={(site.final_score * 50) / 5}
+                                        radius={Math.max(
+                                            8,
+                                            Math.min(20, site.final_score / 5)
+                                        )}
                                         pathOptions={{
-                                            color: "purple",
+                                            color: "#7c3aed",
                                             weight: 2,
-                                            fillColor: `rgba(128,0,128,${
-                                                site.final_score / 100
-                                            })`,
-                                            fillOpacity: 0.6,
+                                            fillColor:
+                                                site.final_score > 0.8
+                                                    ? "#8b5cf6"
+                                                    : site.final_score > 0.6
+                                                    ? "#a78bfa"
+                                                    : "#c4b5fd",
+                                            fillOpacity: 0.8,
                                         }}
                                     >
-                                        {/* <Popup>
-                                            <div className="p-2">
-                                                <h3 className="font-medium">
-                                                    {site.city}
-                                                </h3>
-                                                <p className="text-sm">
-                                                    Score: {site.final_score}
-                                                    /100
-                                                </p>
-                                                <p className="text-sm">
-                                                    Cost Score:{" "}
-                                                    {site["cost_score"]}
-                                                </p>
+                                        <Popup>
+                                            <div className="p-3 min-w-48">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h3 className="font-semibold text-purple-800">
+                                                        {site["City"]}
+                                                    </h3>
+                                                    <div
+                                                        className={`px-2 py-1 rounded-full text-xs font-bold text-white ${
+                                                            parseFloat(
+                                                                site[
+                                                                    "final_score"
+                                                                ]
+                                                            ) > 0.8
+                                                                ? "bg-green-500"
+                                                                : parseFloat(
+                                                                      site[
+                                                                          "final_score"
+                                                                      ]
+                                                                  ) > 0.6
+                                                                ? "bg-yellow-500"
+                                                                : "bg-red-500"
+                                                        }`}
+                                                    >
+                                                        {Math.round(
+                                                            parseFloat(
+                                                                site[
+                                                                    "final_score"
+                                                                ]
+                                                            )
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">
+                                                            Optimization Score:
+                                                        </span>
+                                                        <span className="font-semibold text-black">
+                                                            {site.final_score}
+                                                            /100
+                                                        </span>
+                                                    </div>
+
+                                                    {site.cost_score && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">
+                                                                Cost Efficiency:
+                                                            </span>
+                                                            <span className="font-mediumn text-black">
+                                                                {
+                                                                    site.cost_score
+                                                                }
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="pt-2 border-t border-gray-200">
+                                                        <div className="flex items-center justify-between text-xs">
+                                                            <span className="text-gray-500">
+                                                                Recommendation
+                                                                Level:
+                                                            </span>
+                                                            <span
+                                                                className={`font-medium text-black ${
+                                                                    site.final_score >
+                                                                    80
+                                                                        ? "text-green-600"
+                                                                        : site.final_score >
+                                                                          60
+                                                                        ? "text-yellow-600"
+                                                                        : "text-red-600"
+                                                                }`}
+                                                            >
+                                                                {site.final_score >
+                                                                80
+                                                                    ? "High Priority"
+                                                                    : site.final_score >
+                                                                      60
+                                                                    ? "Medium Priority"
+                                                                    : "Low Priority"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </Popup> */}
+                                        </Popup>
                                     </CircleMarker>
                                 ))}
 
@@ -631,15 +711,15 @@ const HydrogenDashboard = () => {
                             <div className="flex space-x-4 text-sm">
                                 <div className="flex items-center space-x-1">
                                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                                    <span>Operational</span>
+                                    <span>Operation</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                                    <span>Under Construction</span>
+                                    <span>Construction</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                    <span>Planned</span>
+                                    <span>Announced</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <div className="w-2 h-2 bg-red-400 rounded-full"></div>
@@ -803,7 +883,7 @@ const HydrogenDashboard = () => {
                                             >
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <p className="font-medium text-sm">
+                                                        <p className="font-medium text-sm text-black">
                                                             {site.name}
                                                         </p>
                                                         <p className="text-xs text-gray-600">
@@ -823,13 +903,17 @@ const HydrogenDashboard = () => {
                                                         <span className="text-gray-500">
                                                             Cost:
                                                         </span>{" "}
-                                                        ₹{site.cost}Cr
+                                                        <span className="text-black">
+                                                            ₹{site.cost}Cr
+                                                        </span>
                                                     </div>
                                                     <div>
                                                         <span className="text-gray-500">
                                                             ROI:
                                                         </span>{" "}
-                                                        {site.roi}%
+                                                        <span className="text-black">
+                                                            {site.roi}%
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
