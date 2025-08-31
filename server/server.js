@@ -15,6 +15,6 @@ mongoose.connect("mongodb://localhost:27017/demo").then(() => {
     console.log("db connected");
 });
 
-app.listen(8000, () => {
+app.listen(8080, () => {
     console.log("Server connected");
 });

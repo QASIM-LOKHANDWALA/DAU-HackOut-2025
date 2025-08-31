@@ -25,10 +25,12 @@ import {
     Popup,
     CircleMarker,
     LayersControl,
+    useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import axiosInstance from "../../utils/axiosInstance";
 import Papa from "papaparse";
+import axios from "axios";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -223,6 +225,10 @@ const HydrogenDashboard = () => {
     const [showOptimization, setShowOptimization] = useState(false);
     const [hydrogenPlantsResponse, setHydrogenPlants] = useState([]);
     const [optimizedSites, setOptimizedSites] = useState([]);
+    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [cityRecommendations, setCityRecommendations] = useState([]);
+    const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+    const [showLocationSelector, setShowLocationSelector] = useState(false);
 
     // Mock Leaflet functionality for demo
     useEffect(() => {
@@ -252,6 +258,38 @@ const HydrogenDashboard = () => {
                 console.log(err);
             });
     }, []);
+
+    const handleLocationSelect = async (lat, lng) => {
+        setSelectedLocation({ lat, lng });
+        setLoadingRecommendations(true);
+
+        try {
+            const response = await axios.post(
+                "http://localhost:8000/api/hydrogen/predict/",
+                {
+                    lat: lat,
+                    lon: lng,
+                }
+            );
+
+            console.log("AI Response:", response.data);
+
+            // Directly use the JSON array from Django
+            const cityData = response.data.map((item) => ({
+                city: item.City,
+                state: item.State,
+                score: parseFloat(item.pred_score),
+                distance: parseFloat(item.user_distance),
+            }));
+
+            setCityRecommendations(cityData);
+        } catch (error) {
+            console.error("Error fetching city recommendations:", error);
+            setCityRecommendations([]);
+        } finally {
+            setLoadingRecommendations(false);
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -309,6 +347,17 @@ const HydrogenDashboard = () => {
         console.log("All Plants : ", hydrogenPlantsResponse);
     }, [filteredPlants, hydrogenPlantsResponse]);
 
+    const MapClickHandler = () => {
+        useMapEvents({
+            click: (e) => {
+                if (showLocationSelector) {
+                    handleLocationSelect(e.latlng.lat, e.latlng.lng);
+                }
+            },
+        });
+        return null;
+    };
+
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
@@ -327,6 +376,16 @@ const HydrogenDashboard = () => {
                     className="bg-green-600 hover:bg-green-700"
                 >
                     {showOptimization ? "Hide" : "Show"} AI Recommendations
+                </Button>
+                <Button
+                    onClick={() =>
+                        setShowLocationSelector(!showLocationSelector)
+                    }
+                    variant="outline"
+                    className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    {showLocationSelector ? "Hide" : "Select"} Location
                 </Button>
             </div>
 
@@ -429,12 +488,22 @@ const HydrogenDashboard = () => {
                         </div>
                     </CardHeader>
                     <CardContent>
+                        {showLocationSelector && (
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <p className="text-sm text-blue-800 font-medium">
+                                    📍 Click anywhere on the map to get
+                                    AI-powered city recommendations for hydrogen
+                                    infrastructure
+                                </p>
+                            </div>
+                        )}
                         {/* Mock Map Display */}
                         <MapContainer
                             center={[20.5937, 78.9629]} // Center of India
                             zoom={5}
                             className="h-96 w-full rounded-lg"
                         >
+                            <MapClickHandler />
                             <TileLayer
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -523,6 +592,38 @@ const HydrogenDashboard = () => {
                                         </Popup> */}
                                     </CircleMarker>
                                 ))}
+
+                            {/* Selected Location Marker */}
+                            {selectedLocation && (
+                                <Marker
+                                    position={[
+                                        selectedLocation.lat,
+                                        selectedLocation.lng,
+                                    ]}
+                                    icon={L.divIcon({
+                                        className: "custom-selected-marker",
+                                        html: '<div class="w-6 h-6 bg-blue-600 rounded-full border-4 border-white shadow-lg animate-pulse"></div>',
+                                        iconSize: [24, 24],
+                                    })}
+                                >
+                                    <Popup>
+                                        <div className="p-2">
+                                            <h3 className="font-medium">
+                                                Selected Location
+                                            </h3>
+                                            <p className="text-sm">
+                                                {selectedLocation.lat.toFixed(
+                                                    4
+                                                )}
+                                                ,{" "}
+                                                {selectedLocation.lng.toFixed(
+                                                    4
+                                                )}
+                                            </p>
+                                        </div>
+                                    </Popup>
+                                </Marker>
+                            )}
                         </MapContainer>
 
                         {/* Map Controls */}
@@ -548,6 +649,12 @@ const HydrogenDashboard = () => {
                                     <div className="flex items-center space-x-1">
                                         <div className="w-4 h-4 bg-purple-600 rounded-full"></div>
                                         <span>AI Recommendations</span>
+                                    </div>
+                                )}
+                                {selectedLocation && (
+                                    <div className="flex items-center space-x-1">
+                                        <div className="w-4 h-4 bg-blue-600 rounded-full animate-pulse"></div>
+                                        <span>Selected Location</span>
                                     </div>
                                 )}
                             </div>
@@ -600,6 +707,80 @@ const HydrogenDashboard = () => {
                             </Select>
                         </CardContent>
                     </Card>
+
+                    {/* City Recommendations */}
+                    {(selectedLocation || loadingRecommendations) && (
+                        <Card className="border-blue-200 bg-blue-50">
+                            <CardHeader>
+                                <CardTitle className="text-lg text-blue-800 flex items-center">
+                                    <MapPin className="w-5 h-5 mr-2" />
+                                    City Recommendations
+                                </CardTitle>
+                                <CardDescription>
+                                    AI-powered city suggestions for your
+                                    selected location
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingRecommendations ? (
+                                    <div className="flex items-center justify-center p-6">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                        <span className="ml-3 text-blue-700">
+                                            Analyzing location...
+                                        </span>
+                                    </div>
+                                ) : cityRecommendations.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {cityRecommendations.map(
+                                            (city, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="p-3 bg-white rounded-lg border border-blue-200"
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-medium text-sm text-black">
+                                                                {city.city},{" "}
+                                                                {city.state}
+                                                            </p>
+                                                            <p className="text-xs text-gray-600">
+                                                                Distance:{" "}
+                                                                {city.distance.toFixed(
+                                                                    1
+                                                                )}{" "}
+                                                                km
+                                                            </p>
+                                                        </div>
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className={`text-white ${
+                                                                city.score > 80
+                                                                    ? "bg-green-600"
+                                                                    : city.score >
+                                                                      60
+                                                                    ? "bg-yellow-600"
+                                                                    : "bg-red-600"
+                                                            }`}
+                                                        >
+                                                            Score:{" "}
+                                                            {city.score.toFixed(
+                                                                4
+                                                            )}
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            )
+                                        )}
+                                    </div>
+                                ) : selectedLocation ? (
+                                    <div className="text-center p-4 text-gray-600">
+                                        No recommendations found for this
+                                        location.
+                                    </div>
+                                ) : null}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* AI Optimization Panel */}
                     {showOptimization && (

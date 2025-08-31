@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class InfrastructureConfig(AppConfig):
+class HydrogenConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'infrastructure'
+    name = 'hydrogen'

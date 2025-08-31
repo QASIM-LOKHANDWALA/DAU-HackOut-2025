@@ -3,7 +3,7 @@ import { store } from "../redux/store";
 import { logoutUser } from "../redux/features/authSlice";
 
 const axiosInstance = axios.create({
-    baseURL: "http://localhost:8000/api/",
+    baseURL: "http://localhost:8080/api/",
     headers: {
         "Content-Type": "application/json",
     },
